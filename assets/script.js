@@ -1,209 +1,212 @@
-var apiKey = '1e9cbae69e5062a0d8f5e832145475fa';
-var apiUrl = 'https://api.openweathermap.org/data/2.5/forecast?q=';
-var currentWeatherApi = '';
-var city = '';
-var geoUrl = '';
+const apiKey = '1e9cbae69e5062a0d8f5e832145475fa';
+const forecastApiUrl = 'https://api.openweathermap.org/data/2.5/forecast?q=';
 
-var geoLon, geoLat;
+const cityInput = document.getElementById('cityInput');
+const searchButton = document.getElementById('searchButton');
+const weatherInfoDiv = document.getElementById('weatherInfo');
+const forecastDiv = document.getElementById('five-day-forecast');
+const buttonContainer = document.getElementById('buttonContainer');
+const searchErrorDiv = document.getElementById('search-error');
+const clearStorageButton = document.getElementById('clear-storage');
 
-// Array to store city names
-var cityNames = [];
+function getStoredCities() {
+  const storedCities = localStorage.getItem('storedData');
+  return storedCities ? JSON.parse(storedCities) : [];
+}
 
-function displayWeatherData(data) {
-  var weatherInfoDiv = document.getElementById('five-day-forecast');
-  weatherInfoDiv.innerHTML = '';
+function saveStoredCities(cities) {
+  localStorage.setItem('storedData', JSON.stringify(cities));
+}
 
-  if (data.list) {
-    // Handle forecast weather data
-    for (var forecast of data.list) {
-      if (forecast.dt_txt.slice(11, 13) === '12') {
-        if (forecast.main && forecast.weather && forecast.weather.length > 0) {
-          var dateTime = new Date(forecast.dt_txt);
-          var date = dateTime.toDateString();
-          var time = dateTime.toLocaleTimeString();
-          var temperature = Math.round(forecast.main.temp - 273.15);
-          var weatherDescription = forecast.weather[0].description;
-          var humidity= forecast.main.humidity;
-          var windSpeed= forecast.wind.speed;
-          var weatherIcon = `https://openweathermap.org/img/w/${forecast.weather[0].icon}.png`;
-          var forecastDiv = document.createElement('div');
-          forecastDiv.innerHTML = `
-            <p>Date: ${date}</p>
-            <p>Time: ${time}</p>
-            <img src=${weatherIcon}>
-            <p>Temperature: ${temperature}°C</p>
-            <p>Description: ${weatherDescription}</p>
-            <p>Humidity: ${humidity}\%</p>
-            <p>Wind Speed: ${windSpeed} MPH</p>
-            <hr>
-          `;
+function addCityToStorage(city) {
+  const storedCities = getStoredCities();
+  const normalizedCity = city.toLowerCase();
 
-          weatherInfoDiv.appendChild(forecastDiv);
-        }
-      }
+  const alreadyExists = storedCities.some(
+    (storedCity) => storedCity.toLowerCase() === normalizedCity
+  );
+
+  if (!alreadyExists) {
+    storedCities.unshift(city);
+
+    if (storedCities.length > 8) {
+      storedCities.pop();
     }
- }
-   
-   else {
-    console.log('No weather data available for the specified city.');
-  }
-}
-function displayCurrentWeather (data){
-  var weatherInfoDiv = document.getElementById('weatherInfo');
-  weatherInfoDiv.innerHTML = '';
-  var dateTime = new Date(data.dt * 1000);
-  var date = dateTime.toDateString();
-  var time = dateTime.toLocaleTimeString();
-  var temperature = Math.round(data.main.temp - 273.15);
-  var weatherDescription = data.weather[0].description;
-  var humidity= data.main.humidity;
-  var windSpeed= data.wind.speed;
-  console.log(weatherDescription);
-  console.log(data);
-// weatherInfoDiv.textContent = weatherDescription;
 
-  var currentDiv = document.createElement('div');
-  currentDiv.innerHTML = `
-    <p>Date: ${date}</p>
-    <p>Time: ${time}</p>
-    <p>Temperature: ${temperature}°C</p>
-    <p>Description: ${weatherDescription}</p>
-    <p>Humidity: ${humidity}\%</p>
-    <p>Wind Speed: ${windSpeed} MPH</p>
-    <hr>
-  `;
-console.log("currentDiv" + currentDiv);
-  weatherInfoDiv.appendChild(currentDiv);
-  console.log(weatherInfoDiv);
-}
-function getWeatherData(city) {
-  fetch(apiUrl + city + '&appid=' + apiKey)
-    .then(function (response) {
-      return response.json();
-    })
-    .then(function (data) {
-      console.log('weather data', data);
-      displayWeatherData(data);
-    })
-    .catch(function (error) {
-      console.log('Error:', error);
-    });
-}
-
-function getCurrentWeatherData(city) {
-  currentWeatherApi = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}`;
-  fetch(currentWeatherApi)
-    .then(function (response) {
-      return response.json();
-    })
-    .then(function (data) {
-      displayCurrentWeather(data);
-    })
-    .catch(function (error) {
-      console.log('Error:', error);
-    });
-}
-
-function searchWeatherData() {
-  geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=5&appid=${apiKey}`;
-
-  fetch(geoUrl)
-    .then(function (response) {
-      return response.json();
-    })
-    .then(function (data) {
-      if (data.length > 0) {
-        geoLon = data[0].lon;
-        geoLat = data[0].lat;
-
-        var weatherUrl = `https://api.openweathermap.org/data/2.5/onecall?lat=${geoLat}&lon=${geoLon}&exclude=minutely,hourly,alerts&units=imperial&appid=${apiKey}`;
-
-        fetch(weatherUrl)
-          .then(function (response) {
-            return response.json();
-          })
-          .then(function (data) {
-            displayWeatherData(data);
-            console.log('weather data', data);
-          })
-          .catch(function (error) {
-            console.log('Error:', error);
-          });
-      } else {
-        console.log('No data available for the specified city.');
-      }
-    })
-    .catch(function (error) {
-      console.log('Error:', error);
-    });
-}
-
-var searchButton = document.getElementById('searchButton');
-searchButton.addEventListener('click', function (event) {
-  event.preventDefault();
-  var cityInput = document.getElementById('cityInput');
-  city = cityInput.value.trim();
-
-  if (city) {
-    getWeatherData(city);
-  }
-});
-
-// Function to retrieve data from local storage
-function retrieveDataFromLocalStorage() {
-  var storedData = localStorage.getItem('storedData');
-  if (storedData) {
-    return JSON.parse(storedData);
-  } else {
-    return [];
+    saveStoredCities(storedCities);
   }
 }
 
-// Function to save data to local storage
-function saveDataToLocalStorage(data) {
-  localStorage.setItem('storedData', JSON.stringify(data));
-}
-
-// Function to create buttons for each item in local storage
-function createButtonsForLocalStorageData() {
-  var storedData = retrieveDataFromLocalStorage();
-  var buttonContainer = document.getElementById('buttonContainer');
+function renderCityButtons() {
+  const storedCities = getStoredCities();
   buttonContainer.innerHTML = '';
 
-  storedData.forEach(function (item) {
-    var button = document.createElement('button');
-    button.textContent = item;
-    button.setAttribute('value', item);
+  storedCities.forEach((city) => {
+    const button = document.createElement('button');
+    button.textContent = city;
+    button.type = 'button';
+    button.className = 'history-btn';
     button.addEventListener('click', function () {
-      var city = this.value;
-      getWeatherData(city);
+      fetchWeather(city, false);
     });
+
     buttonContainer.appendChild(button);
   });
 }
 
-// Function to handle search button click event
-function handleSearchButtonClick() {
-  var cityInput = document.getElementById('cityInput');
-  city = cityInput.value.trim();
-
-  if (city) {
-    console.log(city);
-    var storedData = retrieveDataFromLocalStorage();
-    storedData.push(city);
-    saveDataToLocalStorage(storedData);
-    createButtonsForLocalStorageData();
-    getWeatherData(city);
-    getCurrentWeatherData(city);
-  }
+function showError(message) {
+  searchErrorDiv.textContent = message;
 }
 
-// Attach event listener to search button
-var searchButton = document.getElementById('searchButton');
-searchButton.addEventListener('click', handleSearchButtonClick);
+function clearError() {
+  searchErrorDiv.textContent = '';
+}
 
-// Initial setup: Create buttons for existing data in local storage
-createButtonsForLocalStorageData();
+function formatDate(dateString) {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
 
-// Initialize with default city
- getCurrentWeatherData(city);
+function createWeatherIcon(iconCode, description) {
+  const icon = document.createElement('img');
+  icon.src = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+  icon.alt = description;
+  return icon;
+}
+
+function renderCurrentWeather(data) {
+  const cityName = data.city.name;
+  const current = data.list[0];
+  const temp = Math.round(current.main.temp - 273.15);
+  const windSpeed = current.wind.speed;
+  const humidity = current.main.humidity;
+  const description = current.weather[0].description;
+  const iconCode = current.weather[0].icon;
+
+  weatherInfoDiv.innerHTML = '';
+
+  const currentCard = document.createElement('div');
+  currentCard.className = 'current-weather-card';
+
+  const heading = document.createElement('div');
+  heading.className = 'current-weather-heading';
+
+  const title = document.createElement('h2');
+  title.textContent = `${cityName} (${formatDate(current.dt_txt)})`;
+
+  const icon = createWeatherIcon(iconCode, description);
+
+  heading.appendChild(title);
+  heading.appendChild(icon);
+
+  const details = document.createElement('div');
+  details.innerHTML = `
+    <p><strong>Temperature:</strong> ${temp}°C</p>
+    <p><strong>Wind:</strong> ${windSpeed} MPH</p>
+    <p><strong>Humidity:</strong> ${humidity}%</p>
+    <p><strong>Conditions:</strong> ${description}</p>
+  `;
+
+  currentCard.appendChild(heading);
+  currentCard.appendChild(details);
+  weatherInfoDiv.appendChild(currentCard);
+}
+
+function renderForecast(data) {
+  forecastDiv.innerHTML = '';
+
+  const dailyForecasts = data.list.filter((forecast) =>
+    forecast.dt_txt.includes('12:00:00')
+  );
+
+  dailyForecasts.forEach((forecast) => {
+    const card = document.createElement('div');
+    card.className = 'forecast-card';
+
+    const date = formatDate(forecast.dt_txt);
+    const temp = Math.round(forecast.main.temp - 273.15);
+    const windSpeed = forecast.wind.speed;
+    const humidity = forecast.main.humidity;
+    const description = forecast.weather[0].description;
+    const iconCode = forecast.weather[0].icon;
+
+    const title = document.createElement('h3');
+    title.textContent = date;
+
+    const icon = createWeatherIcon(iconCode, description);
+
+    const details = document.createElement('div');
+    details.innerHTML = `
+      <p><strong>Temp:</strong> ${temp}°C</p>
+      <p><strong>Wind:</strong> ${windSpeed} MPH</p>
+      <p><strong>Humidity:</strong> ${humidity}%</p>
+      <p><strong>Conditions:</strong> ${description}</p>
+    `;
+
+    card.appendChild(title);
+    card.appendChild(icon);
+    card.appendChild(details);
+    forecastDiv.appendChild(card);
+  });
+}
+
+function fetchWeather(city, saveToHistory = true) {
+  clearError();
+
+  fetch(`${forecastApiUrl}${encodeURIComponent(city)}&appid=${apiKey}`)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('City not found. Please try again.');
+      }
+      return response.json();
+    })
+    .then((data) => {
+      renderCurrentWeather(data);
+      renderForecast(data);
+
+      if (saveToHistory) {
+        addCityToStorage(data.city.name);
+        renderCityButtons();
+      }
+
+      cityInput.value = '';
+    })
+    .catch((error) => {
+      weatherInfoDiv.innerHTML = '';
+      forecastDiv.innerHTML = '';
+      showError(error.message);
+    });
+}
+
+function handleSearch(event) {
+  event.preventDefault();
+
+  const city = cityInput.value.trim();
+
+  if (!city) {
+    showError('Please enter a city name.');
+    return;
+  }
+
+  fetchWeather(city, true);
+}
+
+function clearHistory() {
+  localStorage.removeItem('storedData');
+  buttonContainer.innerHTML = '';
+}
+
+searchButton.addEventListener('click', handleSearch);
+
+if (clearStorageButton) {
+  clearStorageButton.textContent = 'Clear History';
+  clearStorageButton.addEventListener('click', function (event) {
+    event.preventDefault();
+    clearHistory();
+  });
+}
+
+renderCityButtons();
